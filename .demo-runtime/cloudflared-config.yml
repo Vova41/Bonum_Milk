@@ -1,0 +1,7 @@
+tunnel: 8cb1f44d-7a35-4acc-8c77-004ac9a0efc9
+credentials-file: /home/danil/.cloudflared/8cb1f44d-7a35-4acc-8c77-004ac9a0efc9.json
+
+ingress:
+  - hostname: nemilk.ru
+    service: http://127.0.0.1:3002
+  - service: http_status:404
