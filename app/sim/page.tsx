@@ -1,6 +1,7 @@
 "use client";
 
 import { useSimState } from "../hooks/useSimState";
+import { useChat } from "../hooks/useChat";
 
 // ─── Типы для кнопок ───────────────────────────────────────────────────────
 type BtnVariant = "red" | "orange" | "green" | "black";
@@ -66,6 +67,7 @@ function SimGroup({ title, children }: { title: string; children: React.ReactNod
 
 export default function SimPage() {
   const { state, update, reset, currentTime } = useSimState();
+  const { sendMessage } = useChat();
 
   // ─── Цвет и текст глобального статуса ──────────────────────────────────
   const statusColors = { ok: "#16a34a", warn: "#d97706", alert: "#dc2626" } as const;
@@ -144,6 +146,8 @@ export default function SimPage() {
             { label: "Удар",          value: `${state.shockG} g`,       alert: state.shockDetected },
             { label: "GPS",           value: state.gpsLost ? "ПОТЕРЯН" : "ОК",       alert: state.gpsLost },
             { label: "Батарея",       value: `${state.batteryLevel}%`,  alert: state.batteryLow },
+            { label: "Датч. уровня", value: state.levelSensorBroken ? "ОТКАЗ" : "ОК", alert: state.levelSensorBroken },
+            { label: "Датч. темп.",  value: state.temperatureSensorBroken ? "ОТКАЗ" : "ОК", alert: state.temperatureSensorBroken },
           ].map((s) => (
             <div key={s.label} style={{
               background: "#141414",
@@ -216,6 +220,34 @@ export default function SimPage() {
             />
           </SimGroup>
 
+          {/* Датчики */}
+          <SimGroup title="Датчики (отказ)">
+            <SimBtn
+              label="📏 Сломать датчик уровня"
+              variant="red"
+              disabled={state.levelSensorBroken}
+              onClick={() =>
+                update({
+                  levelSensorBroken: true,
+                  alertLevel: state.alertLevel === "ok" ? "warn" : state.alertLevel,
+                  alertMessage: state.alertMessage || "⚠ Отказ датчика уровня молока",
+                })
+              }
+            />
+            <SimBtn
+              label="🌡 Сломать датчик температуры"
+              variant="red"
+              disabled={state.temperatureSensorBroken}
+              onClick={() =>
+                update({
+                  temperatureSensorBroken: true,
+                  alertLevel: state.alertLevel === "ok" ? "warn" : state.alertLevel,
+                  alertMessage: state.alertMessage || "⚠ Отказ датчика температуры",
+                })
+              }
+            />
+          </SimGroup>
+
           {/* Прочее */}
           <SimGroup title="Прочее">
             <SimBtn
@@ -255,6 +287,7 @@ export default function SimPage() {
                   alertLevel:       "alert",
                   alertMessage:     `🚨 КРАЖА МОЛОКА: вскрыта пломба #1 (${t}, км 1084) · слив зафиксирован · осталось 4 200 л · t° = 7.8°C`,
                 });
+                sendMessage("dispatcher", "ТЫ ЧТО ТВОРИШЬ?!");
               }}
             />
           </SimGroup>

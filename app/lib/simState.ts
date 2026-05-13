@@ -16,6 +16,10 @@ export interface SimState {
   gpsLost: boolean;
   batteryLow: boolean;
   batteryLevel: number;
+  /** Отказ датчика уровня (аппаратная часть), не путать с уровнем молока по литрам */
+  levelSensorBroken: boolean;
+  /** Отказ датчика температуры */
+  temperatureSensorBroken: boolean;
   alertLevel: AlertLevel;
   alertMessage: string;
 }
@@ -36,6 +40,8 @@ export const DEFAULT_STATE: SimState = {
   gpsLost: false,
   batteryLow: false,
   batteryLevel: 87,
+  levelSensorBroken: false,
+  temperatureSensorBroken: false,
   alertLevel: "ok",
   alertMessage: "",
 };
