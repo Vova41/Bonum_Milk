@@ -1,50 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { DEFAULT_STATE, type SimState } from "../lib/simState";
 
-export type AlertLevel = "ok" | "warn" | "alert";
-
-export interface SimState {
-  temperatureNow: number;
-  temperatureRising: boolean;
-  seal1Broken: boolean;
-  seal1BreakTime: string | null;
-  seal1BreakKm: number | null;
-  seal2Broken: boolean;
-  seal2BreakTime: string | null;
-  seal2BreakKm: number | null;
-  milkVolume: number;
-  milkLeakDetected: boolean;
-  shockDetected: boolean;
-  shockG: number;
-  gpsLost: boolean;
-  batteryLow: boolean;
-  batteryLevel: number;
-  alertLevel: AlertLevel;
-  alertMessage: string;
-}
+export type { AlertLevel, SimState } from "../lib/simState";
 
 const STORAGE_KEY = "nemilk_sim_state";
-
-export const DEFAULT_STATE: SimState = {
-  temperatureNow: 6.4,
-  temperatureRising: false,
-  seal1Broken: false,
-  seal1BreakTime: null,
-  seal1BreakKm: null,
-  seal2Broken: false,
-  seal2BreakTime: null,
-  seal2BreakKm: null,
-  milkVolume: 5000,
-  milkLeakDetected: false,
-  shockDetected: false,
-  shockG: 0,
-  gpsLost: false,
-  batteryLow: false,
-  batteryLevel: 87,
-  alertLevel: "ok",
-  alertMessage: "",
-};
 
 function loadState(): SimState {
   if (typeof window === "undefined") {
@@ -79,6 +40,19 @@ function dispatchState(state: SimState): void {
       url: window.location.href,
     }),
   );
+}
+
+async function syncStateToServer(state: SimState): Promise<void> {
+  try {
+    await fetch("/api/sim-state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+      keepalive: true,
+    });
+  } catch {
+    // Keep local sync working even if network is unavailable.
+  }
 }
 
 function nowHHMM(): string {
@@ -123,12 +97,42 @@ export function useSimState() {
 
         const next = { ...prev, temperatureNow, alertLevel, alertMessage };
         dispatchState(next);
+        void syncStateToServer(next);
         return next;
       });
     }, 800);
   }, [stopHeating]);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/sim-state", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+        const data = (await response.json()) as Partial<SimState>;
+        const next: SimState = { ...DEFAULT_STATE, ...data };
+        setState(next);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Ignore network bootstrap errors.
+      }
+    })();
+
+    const eventSource = new EventSource("/api/sim-state/stream");
+    eventSource.onmessage = (event) => {
+      try {
+        const next: SimState = { ...DEFAULT_STATE, ...JSON.parse(event.data) };
+        setState(next);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        if (!next.temperatureRising) {
+          stopHeating();
+        }
+      } catch {
+        // Ignore malformed updates from network.
+      }
+    };
+
     function onStorage(event: StorageEvent) {
       if (event.key !== STORAGE_KEY) {
         return;
@@ -156,6 +160,7 @@ export function useSimState() {
     window.addEventListener("storage", onStorage);
 
     return () => {
+      eventSource.close();
       window.removeEventListener("storage", onStorage);
       stopHeating();
     };
@@ -166,6 +171,7 @@ export function useSimState() {
       setState((prev) => {
         const next = { ...prev, ...patch };
         dispatchState(next);
+        void syncStateToServer(next);
         return next;
       });
 
@@ -184,6 +190,7 @@ export function useSimState() {
     stopHeating();
     setState(DEFAULT_STATE);
     dispatchState(DEFAULT_STATE);
+    void syncStateToServer(DEFAULT_STATE);
   }, [stopHeating]);
 
   return {
