@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "demo:public": "bash scripts/publish-demo.sh",
+    "demo:public:stable": "bash scripts/publish-stable.sh",
+    "demo:stop": "bash scripts/stop-demo.sh",
+    "tunnel:setup": "bash scripts/setup-stable-tunnel.sh",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
