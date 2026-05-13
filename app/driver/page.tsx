@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useChat } from "../hooks/useChat";
 import { useSimState } from "../hooks/useSimState";
+import { DRIVER_VEHICLE_PLATE } from "../lib/driverInfo";
 
 const BonumLogo = ({ small }: { small?: boolean }) => (
   <svg width={small ? 44 : 60} height={small ? 29 : 40} viewBox="0 0 66 44" fill="none">
@@ -69,9 +70,17 @@ export default function DriverPage() {
           <div className="flex items-center gap-3">
             <Link href="/"><BonumLogo small /></Link>
             <div className="hidden sm:block w-px h-7" style={{ background: "rgba(255,255,255,0.15)" }} />
-            <div className="hidden sm:block">
-              <p className="text-white font-bold text-sm leading-tight">Иванов Сергей</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Водитель · Рейс #RT-2047</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-white font-bold text-sm leading-tight">Иванов Сергей</p>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded tracking-wide shrink-0"
+                  style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.95)" }}
+                >
+                  {DRIVER_VEHICLE_PLATE}
+                </span>
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>Водитель · Рейс #RT-2047</p>
             </div>
           </div>
 
@@ -87,10 +96,20 @@ export default function DriverPage() {
           </div>
         </div>
 
+        {sim.gpsLost && (
+          <div
+            className="text-center text-xs font-semibold py-2 px-4"
+            style={{ background: "#422006", color: "#fde68a", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            📡 GPS потерян — координаты не передаются, местоположение на карте у диспетчера не обновляется
+          </div>
+        )}
+
         {/* Route strip — horizontal scroll on mobile */}
         <div style={{ background: "#1c1c1c", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="px-4 sm:px-6 py-2 max-w-7xl mx-auto overflow-x-auto">
             <div className="flex gap-4 text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.45)" }}>
+              <span className="sm:hidden font-medium text-white">{DRIVER_VEHICLE_PLATE}</span>
               <span>📍 М4, км 1084</span>
               <span>🚛 87 км/ч</span>
               <span>📦 Молоко, {sim.milkVolume.toLocaleString("ru-RU")} л</span>
@@ -135,17 +154,17 @@ export default function DriverPage() {
               },
               {
                 label: "Датчик уровня",
-                value: "Исправен",
-                note: "проверка 14:00",
-                valueColor: "#111111",
-                noteColor: "#999999",
+                value: sim.levelSensorBroken ? "ОТКАЗ" : "Исправен",
+                note: sim.levelSensorBroken ? "Нет достоверных данных с датчика" : "проверка 14:00",
+                valueColor: sim.levelSensorBroken ? "#dc2626" : "#111111",
+                noteColor: sim.levelSensorBroken ? "#dc2626" : "#999999",
               },
               {
                 label: "Датчик темп-ры",
-                value: "Исправен",
-                note: "проверка 14:00",
-                valueColor: "#111111",
-                noteColor: "#999999",
+                value: sim.temperatureSensorBroken ? "ОТКАЗ" : "Исправен",
+                note: sim.temperatureSensorBroken ? "Показания недостоверны" : "проверка 14:00",
+                valueColor: sim.temperatureSensorBroken ? "#dc2626" : "#111111",
+                noteColor: sim.temperatureSensorBroken ? "#dc2626" : "#999999",
               },
               {
                 label: "Удар / авария",
@@ -179,7 +198,13 @@ export default function DriverPage() {
           <div className="grid grid-cols-3 gap-2 mb-3">
             {[
               { label: "При заливе", value: "3.8°C", dark: true, muted: false, color: "#ffffff" },
-              { label: "Сейчас", value: `${sim.temperatureNow.toFixed(1)}°C`, dark: false, muted: false, color: sim.temperatureNow >= 7.0 ? "#dc2626" : "#111111" },
+              {
+                label: "Сейчас",
+                value: sim.temperatureSensorBroken ? "—" : `${sim.temperatureNow.toFixed(1)}°C`,
+                dark: false,
+                muted: sim.temperatureSensorBroken,
+                color: sim.temperatureSensorBroken ? "#999999" : sim.temperatureNow >= 7.0 ? "#dc2626" : "#111111",
+              },
               { label: "При сливе", value: "—", dark: false, muted: true, color: "#cccccc" },
             ].map((item) => (
               <div key={item.label} className="rounded-lg p-2 sm:p-3 text-center"

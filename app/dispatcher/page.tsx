@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useChat } from "../hooks/useChat";
 import { useSimState } from "../hooks/useSimState";
+import { DRIVER_VEHICLE_PLATE } from "../lib/driverInfo";
 
 const BonumLogo = ({ small }: { small?: boolean }) => (
   <svg width={small ? 44 : 60} height={small ? 29 : 40} viewBox="0 0 66 44" fill="none">
@@ -66,6 +67,12 @@ export default function DispatcherPage() {
     if (sim.batteryLow) {
       incidents.push(`  Низкий заряд батареи: ${sim.batteryLevel}%`);
     }
+    if (sim.levelSensorBroken) {
+      incidents.push("  Отказ датчика уровня молока");
+    }
+    if (sim.temperatureSensorBroken) {
+      incidents.push("  Отказ датчика температуры");
+    }
 
     const lines = [
       "════════════════════════════",
@@ -73,6 +80,7 @@ export default function DispatcherPage() {
       "════════════════════════════",
       `Дата: ${new Date().toLocaleDateString("ru-RU")}`,
       "Водитель: Иванов Сергей",
+      `ТС: ${DRIVER_VEHICLE_PLATE}`,
       "Маршрут: Ростов-на-Дону → Краснодар",
       "",
       "── ТЕМПЕРАТУРА ──",
@@ -87,6 +95,8 @@ export default function DispatcherPage() {
       "── ОХРАННЫЕ ДАТЧИКИ ──",
       `  Уровень молока: ${sim.milkVolume.toLocaleString("ru-RU")} л — ${sim.milkLeakDetected ? "Слив зафиксирован" : "Норма"}`,
       `  Удар: ${sim.shockG} g, Крен: 1.2°, Торможение: 0.3g`,
+      `  Датчик уровня: ${sim.levelSensorBroken ? "ОТКАЗ" : "исправен"}`,
+      `  Датчик температуры: ${sim.temperatureSensorBroken ? "ОТКАЗ" : "исправен"}`,
       ...(incidents.length > 0 ? ["", "── ЗАФИКСИРОВАННЫЕ ИНЦИДЕНТЫ ──", ...incidents] : []),
       "",
       "── ПЕРЕПИСКА ──",
@@ -143,7 +153,7 @@ export default function DispatcherPage() {
         <div style={{ background: "#1c1c1c", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="px-4 sm:px-6 py-2 max-w-7xl mx-auto overflow-x-auto">
             <div className="flex gap-4 text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.45)" }}>
-              <span>🚛 Иванов Сергей · Рейс #RT-2047</span>
+              <span>🚛 Иванов Сергей · {DRIVER_VEHICLE_PLATE} · Рейс #RT-2047</span>
               <span>📍 М4, км 1084</span>
               <span>⚡ 87 км/ч</span>
               <span className="font-medium text-white">Прибытие ~16:45</span>
@@ -161,6 +171,16 @@ export default function DispatcherPage() {
             <p className="font-bold text-sm" style={{ color: "#111111" }}>Местоположение водителя</p>
             <span className="text-xs px-2.5 py-1 rounded" style={{ background: "#f5f5f5", color: "#777777" }}>14:32</span>
           </div>
+
+          {sim.gpsLost && (
+            <div
+              className="mb-3 rounded-lg px-3 py-2.5 text-xs font-semibold flex items-center gap-2"
+              style={{ background: "#fef3c7", border: "1px solid #d97706", color: "#92400e" }}
+            >
+              <span aria-hidden>📡</span>
+              <span>GPS-сигнал потерян. Местоположение водителя на карте не обновляется до восстановления связи.</span>
+            </div>
+          )}
 
           <div className="relative rounded-xl overflow-hidden mb-3" style={{ height: "180px", background: "#1a1a1a" }}>
             <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
@@ -274,7 +294,12 @@ export default function DispatcherPage() {
           <div className="grid grid-cols-3 gap-2 mb-3">
             {[
               { label: "При заливе", value: "3.8°C", dark: true, color: "#ffffff" },
-              { label: "Сейчас", value: `${sim.temperatureNow.toFixed(1)}°C`, dark: false, color: sim.temperatureNow >= 7.0 ? "#dc2626" : "#111111" },
+              {
+                label: "Сейчас",
+                value: sim.temperatureSensorBroken ? "—" : `${sim.temperatureNow.toFixed(1)}°C`,
+                dark: false,
+                color: sim.temperatureSensorBroken ? "#999999" : sim.temperatureNow >= 7.0 ? "#dc2626" : "#111111",
+              },
               { label: "При сливе", value: "—", dark: false, color: "#cccccc" },
             ].map((item) => (
               <div key={item.label} className="rounded-lg p-2 sm:p-3 text-center"
@@ -347,17 +372,17 @@ export default function DispatcherPage() {
               },
               {
                 label: "Датчик уровня",
-                value: "Исправен",
-                note: "проверка 14:00",
-                valueColor: "#111111",
-                noteColor: "#999999",
+                value: sim.levelSensorBroken ? "ОТКАЗ" : "Исправен",
+                note: sim.levelSensorBroken ? "Нет достоверных данных с датчика" : "проверка 14:00",
+                valueColor: sim.levelSensorBroken ? "#dc2626" : "#111111",
+                noteColor: sim.levelSensorBroken ? "#dc2626" : "#999999",
               },
               {
                 label: "Датчик темп-ры",
-                value: "Исправен",
-                note: "проверка 14:00",
-                valueColor: "#111111",
-                noteColor: "#999999",
+                value: sim.temperatureSensorBroken ? "ОТКАЗ" : "Исправен",
+                note: sim.temperatureSensorBroken ? "Показания недостоверны" : "проверка 14:00",
+                valueColor: sim.temperatureSensorBroken ? "#dc2626" : "#111111",
+                noteColor: sim.temperatureSensorBroken ? "#dc2626" : "#999999",
               },
               {
                 label: "Удар / авария",
