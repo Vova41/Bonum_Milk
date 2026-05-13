@@ -225,7 +225,16 @@ export default function DispatcherPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-3">
             <p className="font-bold text-sm" style={{ color: "#111111" }}>Состояние пломб</p>
-            <span className="badge-ok">Целы</span>
+            {sim.seal1Broken || sim.seal2Broken ? (
+              <span
+                className="text-[11px] font-bold px-2.5 py-0.5 rounded-full tracking-wide"
+                style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca" }}
+              >
+                Нарушена
+              </span>
+            ) : (
+              <span className="badge-ok">Целы</span>
+            )}
           </div>
 
           {[
@@ -281,9 +290,24 @@ export default function DispatcherPage() {
             </div>
           )}
 
-          <div className="rounded-lg px-3 py-2.5 flex items-center gap-2" style={{ background: "#111111" }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-            <p className="text-xs font-medium text-white">Целостность груза подтверждена</p>
+          <div
+            className="rounded-lg px-3 py-2.5 flex items-center gap-2"
+            style={{ background: sim.seal1Broken || sim.seal2Broken ? "#dc2626" : "#111111" }}
+          >
+            {sim.seal1Broken || sim.seal2Broken ? (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+            ) : (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+            )}
+            <p className="text-xs font-medium text-white">
+              {sim.seal1Broken || sim.seal2Broken
+                ? "Целостность груза нарушена — зафиксировано вскрытие пломбы"
+                : "Целостность груза подтверждена"}
+            </p>
           </div>
         </div>
 
