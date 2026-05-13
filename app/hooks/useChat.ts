@@ -18,15 +18,16 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
   { id: "4", from: "driver",     text: "Понял, перестраиваюсь.", time: "10:17" },
 ];
 
-function loadMessages(): ChatMessage[] {
-  if (typeof window === "undefined") return DEFAULT_MESSAGES;
+function readChatFromStorage(): ChatMessage[] | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_MESSAGES;
+    if (raw === null) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_MESSAGES;
+    if (!Array.isArray(parsed)) return null;
+    return parsed;
   } catch {
-    return DEFAULT_MESSAGES;
+    return null;
   }
 }
 
@@ -36,7 +37,14 @@ function saveMessages(msgs: ChatMessage[]) {
 }
 
 export function useChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages());
+  const [messages, setMessages] = useState<ChatMessage[]>(DEFAULT_MESSAGES);
+
+  useEffect(() => {
+    const fromStorage = readChatFromStorage();
+    if (fromStorage !== null) {
+      setMessages(fromStorage);
+    }
+  }, []);
 
   // Listen for changes from OTHER tabs
   useEffect(() => {

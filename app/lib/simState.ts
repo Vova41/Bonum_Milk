@@ -45,3 +45,17 @@ export const DEFAULT_STATE: SimState = {
   alertLevel: "ok",
   alertMessage: "",
 };
+
+/** Есть ли нарушение по блоку «охранные датчики» (пломбы, слив, отказы датчиков, удар, GPS, АКБ). */
+export function isSecuritySensorsViolated(sim: SimState): boolean {
+  return (
+    sim.seal1Broken ||
+    sim.seal2Broken ||
+    sim.milkLeakDetected ||
+    sim.levelSensorBroken ||
+    sim.temperatureSensorBroken ||
+    sim.shockDetected ||
+    sim.gpsLost ||
+    sim.batteryLow
+  );
+}

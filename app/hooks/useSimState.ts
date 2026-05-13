@@ -7,20 +7,18 @@ export type { AlertLevel, SimState } from "../lib/simState";
 
 const STORAGE_KEY = "nemilk_sim_state";
 
-function loadState(): SimState {
+function readSimFromStorage(): SimState | null {
   if (typeof window === "undefined") {
-    return DEFAULT_STATE;
+    return null;
   }
-
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return DEFAULT_STATE;
+      return null;
     }
-
     return { ...DEFAULT_STATE, ...JSON.parse(raw) };
   } catch {
-    return DEFAULT_STATE;
+    return null;
   }
 }
 
@@ -60,7 +58,8 @@ function nowHHMM(): string {
 }
 
 export function useSimState() {
-  const [state, setState] = useState<SimState>(() => loadState());
+  // Всегда совпадает с SSR, чтобы не было hydration mismatch; реальное состояние — в useEffect.
+  const [state, setState] = useState<SimState>(DEFAULT_STATE);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopHeating = useCallback(() => {
@@ -104,6 +103,11 @@ export function useSimState() {
   }, [stopHeating]);
 
   useEffect(() => {
+    const fromStorage = readSimFromStorage();
+    if (fromStorage) {
+      setState(fromStorage);
+    }
+
     void (async () => {
       try {
         const response = await fetch("/api/sim-state", { cache: "no-store" });

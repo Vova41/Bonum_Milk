@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useChat } from "../hooks/useChat";
 import { useSimState } from "../hooks/useSimState";
 import { DRIVER_VEHICLE_PLATE } from "../lib/driverInfo";
+import { isSecuritySensorsViolated } from "../lib/simState";
 
 const BonumLogo = ({ small }: { small?: boolean }) => (
   <svg width={small ? 44 : 60} height={small ? 29 : 40} viewBox="0 0 66 44" fill="none">
@@ -368,7 +369,16 @@ export default function DispatcherPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-3">
             <p className="font-bold text-sm" style={{ color: "#111111" }}>Охранные датчики</p>
-            <span className="badge-ok">Норма</span>
+            {isSecuritySensorsViolated(sim) ? (
+              <span
+                className="text-[11px] font-bold px-2.5 py-0.5 rounded-full tracking-wide"
+                style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca" }}
+              >
+                Нарушен
+              </span>
+            ) : (
+              <span className="badge-ok">Норма</span>
+            )}
           </div>
 
           <div className="flex flex-col gap-2 mb-3">
